@@ -1,36 +1,48 @@
 from flask import Flask, request, jsonify
-import requests, os
+import requests
+import os
 
 app = Flask(__name__)
 
+# Original backend booking API
 BACKEND = "https://utkarshshukla2912.pythonanywhere.com/api/v1/appointments"
+
 
 @app.route("/")
 def home():
-    return {"status": "online"}
+    return {"status": "online", "service": "Ringg Booking Adapter"}
+
 
 @app.route("/book", methods=["POST"])
 def book():
-    # Try JSON first
-    data = request.get_json(silent=True)
+    try:
+        # Try JSON first (Ringg sometimes sends JSON)
+        data = request.get_json(silent=True)
 
-    # If Ringg sent form-data instead
-    if not data:
-        data = request.form.to_dict()
+        # If empty, read form-data
+        if not data:
+            data = request.form.to_dict()
 
-    # Clean payload (very important)
-    cleaned = {}
-    for k, v in data.items():
-        if v is None:
-            continue
-        value = str(v).strip()
-        if value != "":
-            cleaned[k] = value
+        # Clean payload
+        cleaned = {}
+        for k, v in data.items():
+            if v is None:
+                continue
+            value = str(v).strip()
+            if value != "":
+                cleaned[k] = value
 
-    # Forward to backend as JSON
-    res = requests.post(BACKEND, json=cleaned)
+        # Forward to backend as JSON
+        res = requests.post(BACKEND, json=cleaned)
 
-    return (res.text, res.status_code, {'Content-Type':'application/json'})
+        # Return proper JSON response (important for Ringg)
+        return jsonify(res.json()), res.status_code
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 
 if __name__ == "__main__":
