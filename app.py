@@ -1,8 +1,9 @@
 from flask import Flask, request, jsonify
-import requests
-import os
+import requests, os
 
 app = Flask(__name__)
+
+BACKEND = "https://utkarshshukla2912.pythonanywhere.com/api/v1/appointments"
 
 @app.route("/")
 def home():
@@ -10,17 +11,26 @@ def home():
 
 @app.route("/book", methods=["POST"])
 def book():
-    payload = request.get_json(silent=True)
+    # Try JSON first
+    data = request.get_json(silent=True)
 
-    if not payload:
-        payload = request.form.to_dict()
+    # If Ringg sent form-data instead
+    if not data:
+        data = request.form.to_dict()
 
-    res = requests.post(
-        "https://utkarshshukla2912.pythonanywhere.com/api/v1/appointments",
-        json=payload
-    )
+    # Clean payload (very important)
+    cleaned = {}
+    for k, v in data.items():
+        if v is None:
+            continue
+        value = str(v).strip()
+        if value != "":
+            cleaned[k] = value
 
-    return jsonify(res.json()), res.status_code
+    # Forward to backend as JSON
+    res = requests.post(BACKEND, json=cleaned)
+
+    return (res.text, res.status_code, {'Content-Type':'application/json'})
 
 
 if __name__ == "__main__":
