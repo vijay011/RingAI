@@ -1,13 +1,20 @@
+from flask import Flask, request, jsonify
+import requests
+import os
+
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return {"status": "online"}
+
 @app.route("/book", methods=["POST"])
 def book():
-    # Try reading JSON
     payload = request.get_json(silent=True)
 
-    # If Ringg sent form-data instead
     if not payload:
         payload = request.form.to_dict()
 
-    # Forward as JSON to backend
     res = requests.post(
         "https://utkarshshukla2912.pythonanywhere.com/api/v1/appointments",
         json=payload
@@ -15,3 +22,7 @@ def book():
 
     return jsonify(res.json()), res.status_code
 
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
